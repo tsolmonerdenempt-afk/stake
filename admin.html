@@ -53,8 +53,12 @@
           <div class="fg"><label>Late Reg</label><input id="t_late" placeholder="Jun 28, 15:40"></div>
           <div class="fg"><label>Stack</label><input id="t_stack" placeholder="25,000"></div>
         </div>
-        <div class="row"><div class="fg"><label>Тэмдэглэгээ (tag)</label><input id="t_tag" placeholder="Mystery Bounty"></div>
-          <div class="fg"><label>Эрэмбэ</label><input id="t_sort" type="number" value="0"></div></div>
+        <div class="row3">
+          <div class="fg"><label>Тэмдэглэгээ (tag)</label><input id="t_tag" placeholder="Mystery Bounty"></div>
+          <div class="fg"><label>Rebuy тоо</label><input id="t_rebuys" type="number" step="1" value="0"></div>
+          <div class="fg"><label>Шагналын сан (USD)</label><input id="t_prize" type="number" step="1" placeholder="0"></div>
+        </div>
+        <div class="fg"><label>Эрэмбэ</label><input id="t_sort" type="number" value="0"></div>
         <button class="btn" id="addTourBtn">+ Нэмэх</button>
       </div>
       <div class="card">
@@ -103,7 +107,8 @@
         <div class="fg"><label>Avatar зургийн URL</label><input id="set_avatar" placeholder="https://..."></div>
         <div class="row"><div class="fg"><label>Анхны markup (×)</label><input id="set_markup" type="number" step="0.01"></div>
           <div class="fg"><label>Анхны USD→MNT ханш</label><input id="set_rate" type="number"></div></div>
-        <div class="fg"><label>Төлбөрийн мэдээлэл (данс гэх мэт)</label><textarea id="set_payinfo"></textarea></div>
+        <div class="fg"><label>Дансны дугаар (хуулах товчтой харагдана)</label><input id="set_account" placeholder="630004000458077445"></div>
+        <div class="fg"><label>Төлбөрийн нэмэлт мэдээлэл (банк, нэр, гүйлгээний утга)</label><textarea id="set_payinfo"></textarea></div>
         <div class="fg"><label>QPay/QR зургийн URL (заавал биш)</label><input id="set_qr" placeholder="https://..."></div>
         <div class="fg"><label>Холбоо барих</label><input id="set_contact"></div>
         <button class="btn" id="saveSettingsBtn">Хадгалах</button>
@@ -128,30 +133,27 @@ const sb=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);
 const $=id=>document.getElementById(id);
 const fmtMnt=n=>Math.round(n||0).toLocaleString('en-US')+'₮';
 const fmtUsd=n=>'$'+(Number(n||0)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtBig=n=>{n=Number(n||0);if(n>=1e6)return '$'+(n/1e6).toFixed(2)+'M';if(n>=1e3)return '$'+(n/1e3).toFixed(0)+'K';return '$'+n.toFixed(0);};
 const esc=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function toast(m,t){const e=$('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(()=>e.className='toast',2800);}
 let PIN=sessionStorage.getItem('stk_pin')||'';
 let D={session:null,settings:null,tours:[],sales:[]};
 
-// ---------- auth ----------
 async function tryLogin(pin){
   const {data,error}=await sb.rpc('stk_admin_login',{p_pin:pin});
   if(error){toast('Алдаа гарлаа','err');return false;}
   return data===true;
 }
 $('loginBtn').onclick=async()=>{
-  const pin=$('pin').value.trim(); if(!pin)return;
-  $('loginBtn').disabled=true;
+  const pin=$('pin').value.trim(); if(!pin)return; $('loginBtn').disabled=true;
   if(await tryLogin(pin)){PIN=pin;sessionStorage.setItem('stk_pin',pin);showApp();}
   else toast('PIN буруу байна','err');
   $('loginBtn').disabled=false;
 };
 $('pin').addEventListener('keydown',e=>{if(e.key==='Enter')$('loginBtn').click();});
 $('logoutBtn').onclick=()=>{sessionStorage.removeItem('stk_pin');location.reload();};
-
 function showApp(){$('login').classList.add('hidden');$('app').classList.remove('hidden');$('logoutBtn').classList.remove('hidden');loadAll();}
 
-// ---------- tabs ----------
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   t.classList.add('active');
@@ -159,7 +161,6 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   $('tab-'+t.dataset.tab).classList.remove('hidden');
 });
 
-// ---------- load ----------
 async function loadAll(){
   const {data:set}=await sb.from('stk_settings_public').select('*').eq('id',1).maybeSingle();
   D.settings=set; fillSettings(set);
@@ -169,31 +170,31 @@ async function loadAll(){
     const sid=D.session.id;
     const {data:tt}=await sb.from('stk_tournaments').select('*').eq('session_id',sid).order('sort_order');
     D.tours=tt||[];
-    const {data:sa,error}=await sb.rpc('stk_admin_sales',{p_pin:PIN});
+    const {data:sa}=await sb.rpc('stk_admin_sales',{p_pin:PIN});
     D.sales=(sa||[]).filter(x=>x.session_id===sid);
-    if(error)console.warn(error);
   }else{D.tours=[];D.sales=[];}
   renderDash();renderTours();renderSales();
 }
 
 function metrics(){
   const s=D.session,set=D.settings;
-  const totalBuyin=D.tours.reduce((a,t)=>a+Number(t.buy_in||0),0);
+  const totalBuyin=D.tours.reduce((a,t)=>a+Number(t.buy_in||0)*(1+Number(t.rebuys||0)),0);
+  const totalPrize=D.tours.reduce((a,t)=>a+Number(t.prize_pool||0),0);
   const markup=(s&&s.markup!=null)?Number(s.markup):Number(set?.default_markup??1);
   const rate=(s&&s.usd_mnt_rate!=null)?Number(s.usd_mnt_rate):Number(set?.usd_mnt_rate??3450);
   const sold=D.sales.filter(x=>x.status!=='cancelled').reduce((a,x)=>a+Number(x.percent||0),0);
-  const paid=D.sales.filter(x=>x.status==='paid');
-  const collectedMnt=paid.reduce((a,x)=>a+Number(x.amount_mnt||0),0);
+  const collectedMnt=D.sales.filter(x=>x.status==='paid').reduce((a,x)=>a+Number(x.amount_mnt||0),0);
   const winnings=D.tours.reduce((a,t)=>a+(t.result_amount!=null?Number(t.result_amount):0),0);
   const hasResults=D.tours.some(t=>t.result_amount!=null);
   const forSale=Number(s?.total_percent_for_sale??0);
-  return {totalBuyin,markup,rate,sold,forSale,avail:Math.max(0,forSale-sold),collectedMnt,winnings,hasResults,perPct:totalBuyin/100*markup};
+  return {totalBuyin,totalPrize,markup,rate,sold,forSale,avail:Math.max(0,forSale-sold),collectedMnt,winnings,hasResults,perPct:totalBuyin/100*markup};
 }
 
 function renderDash(){
   const m=metrics();
   const cards=[
-    ['Нийт buy-in',fmtUsd(m.totalBuyin),`≈ ${fmtMnt(m.totalBuyin*m.rate)}`,''],
+    ['Нийт өртөг',fmtUsd(m.totalBuyin),`≈ ${fmtMnt(m.totalBuyin*m.rate)}`,''],
+    ['Нийт шагналын сан',fmtBig(m.totalPrize),'GTD','accent'],
     ['Markup',`${m.markup.toFixed(2)}×`,'',''],
     ['Зарагдсан',`${m.sold.toFixed(1)}%`,`${m.forSale}%-аас`,'accent'],
     ['Үлдсэн',`${m.avail.toFixed(1)}%`,'',m.avail>0?'good':'bad'],
@@ -201,34 +202,34 @@ function renderDash(){
   ];
   if(m.hasResults){
     cards.push(['Нийт хожил',fmtUsd(m.winnings),`≈ ${fmtMnt(m.winnings*m.rate)}`,m.winnings>=m.totalBuyin?'good':'bad']);
-    const inv=m.totalBuyin*(m.sold/100); // зарсан хэсгээс олсон markup ашиг
     const markupProfit=m.sold/100*m.totalBuyin*(m.markup-1);
     cards.push(['Markup ашиг',fmtUsd(markupProfit),'зарсан хувиас','good']);
   }
   $('dashStats').innerHTML=cards.map(x=>`<div class="stat ${x[3]}"><div class="k">${x[0]}</div><div class="v">${x[1]} <small>${x[2]||''}</small></div></div>`).join('');
 }
 
-// ---------- tournaments admin ----------
 const liveOpts=[['upcoming','Эхлээгүй'],['alive','Амьд'],['busted','Унасан'],['finished','Дууссан']];
 function renderTours(){
   if(!D.tours.length){$('toursAdmin').innerHTML='<div class="empty">Тэмцээн алга</div>';return;}
   $('toursAdmin').innerHTML=D.tours.map(t=>`
    <div class="stat" style="margin-bottom:10px">
      <div class="split" style="justify-content:space-between;align-items:center">
-       <div><div class="name">${esc(t.name)}</div><span class="tiny muted">${fmtUsd(t.buy_in)} · ${esc(t.start_time||'')} ${t.tag?'· '+esc(t.tag):''}</span></div>
+       <div><div class="name">${esc(t.name)}</div><span class="tiny muted">${fmtUsd(t.buy_in)} · ${esc(t.start_time||'')} ${t.tag?'· '+esc(t.tag):''} ${Number(t.prize_pool)>0?'· сан '+fmtBig(t.prize_pool):''}</span></div>
        <button class="btn danger sm" onclick="delTour('${t.id}')">Устгах</button>
      </div>
      <div class="row3" style="margin-top:10px">
        <div><label class="tiny">Chip count</label><input id="chip_${t.id}" value="${esc(t.chip_count||'')}" placeholder="ж: 120,000"></div>
        <div><label class="tiny">Төлөв</label><select id="live_${t.id}">${liveOpts.map(o=>`<option value="${o[0]}" ${t.live_status===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>
-       <div><label class="tiny">Байр</label><input id="place_${t.id}" value="${esc(t.place||'')}" placeholder="ж: 5/1200"></div>
+       <div><label class="tiny">Rebuy тоо</label><input id="reb_${t.id}" type="number" step="1" value="${Number(t.rebuys||0)}"></div>
      </div>
-     <div class="row" style="margin-top:10px">
+     <div class="row3" style="margin-top:10px">
+       <div><label class="tiny">Байр</label><input id="place_${t.id}" value="${esc(t.place||'')}" placeholder="ж: 5/1200"></div>
+       <div><label class="tiny">Шагналын сан (USD)</label><input id="prize_${t.id}" type="number" step="1" value="${Number(t.prize_pool||0)}"></div>
        <div><label class="tiny">Үр дүн / хожил (USD)</label><input id="res_${t.id}" type="number" step="0.01" value="${t.result_amount!=null?t.result_amount:''}" placeholder="хоосон = дуусаагүй"></div>
-       <div style="display:flex;align-items:flex-end;gap:8px">
-         <button class="btn sm" onclick="saveLive('${t.id}')">Live хадгалах</button>
-         <button class="btn good sm" onclick="saveResult('${t.id}')">Үр дүн хадгалах</button>
-       </div>
+     </div>
+     <div class="split" style="margin-top:10px">
+       <button class="btn sm" onclick="saveLive('${t.id}')">Live & сан хадгалах</button>
+       <button class="btn good sm" onclick="saveResult('${t.id}')">Үр дүн хадгалах</button>
      </div>
    </div>`).join('');
 }
@@ -236,9 +237,13 @@ window.delTour=async id=>{ if(!confirm('Энэ тэмцээнийг устгах
   const {error}=await sb.rpc('stk_delete_tournament',{p_pin:PIN,p_id:id});
   if(error)return toast(error.message,'err'); toast('Устгалаа','ok'); loadAll();};
 window.saveLive=async id=>{
-  const {error}=await sb.rpc('stk_set_tournament_live',{p_pin:PIN,p_id:id,
-    p_chip_count:$('chip_'+id).value,p_live_status:$('live_'+id).value,p_place:$('place_'+id).value});
-  if(error)return toast(error.message,'err'); toast('Хадгаллаа ✓','ok'); loadAll();};
+  const e1=await sb.rpc('stk_set_tournament_live',{p_pin:PIN,p_id:id,
+    p_chip_count:$('chip_'+id).value,p_live_status:$('live_'+id).value,p_place:$('place_'+id).value,
+    p_rebuys:Number($('reb_'+id).value||0)});
+  const e2=await sb.rpc('stk_upsert_tournament',{p_pin:PIN,p_id:id,p_session_id:D.session.id,
+    p_name:null,p_buy_in:null,p_start_time:null,p_late_reg:null,p_starting_stack:null,p_tag:null,
+    p_sort_order:null,p_rebuys:Number($('reb_'+id).value||0),p_prize_pool:Number($('prize_'+id).value||0)});
+  if(e1.error||e2.error)return toast((e1.error||e2.error).message,'err'); toast('Хадгаллаа ✓','ok'); loadAll();};
 window.saveResult=async id=>{
   const v=$('res_'+id).value; const amt=v===''?null:Number(v);
   const {error}=await sb.rpc('stk_set_tournament_result',{p_pin:PIN,p_id:id,p_place:$('place_'+id).value,p_result_amount:amt});
@@ -248,12 +253,12 @@ $('addTourBtn').onclick=async()=>{
   if(!D.session)return toast('Эхлээд session үүсгэнэ үү','err');
   const {error}=await sb.rpc('stk_upsert_tournament',{p_pin:PIN,p_id:null,p_session_id:D.session.id,
     p_name:name,p_buy_in:Number($('t_buyin').value||0),p_start_time:$('t_start').value,
-    p_late_reg:$('t_late').value,p_starting_stack:$('t_stack').value,p_tag:$('t_tag').value,p_sort_order:Number($('t_sort').value||0)});
+    p_late_reg:$('t_late').value,p_starting_stack:$('t_stack').value,p_tag:$('t_tag').value,
+    p_sort_order:Number($('t_sort').value||0),p_rebuys:Number($('t_rebuys').value||0),p_prize_pool:Number($('t_prize').value||0)});
   if(error)return toast(error.message,'err');
-  ['t_name','t_buyin','t_start','t_late','t_stack','t_tag'].forEach(i=>$(i).value=''); $('t_sort').value=0;
+  ['t_name','t_buyin','t_start','t_late','t_stack','t_tag','t_prize'].forEach(i=>$(i).value=''); $('t_sort').value=0; $('t_rebuys').value=0;
   toast('Нэмлээ ✓','ok'); loadAll();};
 
-// ---------- sales admin ----------
 const stOpts=[['pending','Хүлээгдэж буй'],['paid','Төлсөн'],['cancelled','Цуцалсан']];
 function renderSales(){
   if(!D.sales.length){$('salesAdmin').innerHTML='<div class="empty">Захиалга алга</div>';return;}
@@ -279,7 +284,6 @@ window.delSale=async id=>{if(!confirm('Захиалга устгах уу?'))ret
   const {error}=await sb.rpc('stk_delete_sale',{p_pin:PIN,p_id:id});
   if(error)return toast(error.message,'err'); toast('Устгалаа','ok'); loadAll();};
 
-// ---------- session ----------
 function fillSession(s){
   $('s_title').value=s?.title||''; $('s_date').value=s?.session_date||'';
   $('s_markup').value=s?.markup??''; $('s_rate').value=s?.usd_mnt_rate??'';
@@ -301,18 +305,18 @@ $('newSessionBtn').onclick=async()=>{
     p_total_percent:50,p_usd_mnt_rate:null,p_status:'open',p_notes:'',p_is_active:true});
   if(error)return toast(error.message,'err'); toast('Үүсгэлээ ✓','ok'); loadAll();};
 
-// ---------- settings ----------
 function fillSettings(s){
   $('set_name').value=s?.player_name||''; $('set_tag').value=s?.tagline||'';
   $('set_avatar').value=s?.avatar_url||''; $('set_markup').value=s?.default_markup??1.1;
-  $('set_rate').value=s?.usd_mnt_rate??3450; $('set_payinfo').value=s?.payment_info||'';
-  $('set_qr').value=s?.payment_qr_url||''; $('set_contact').value=s?.contact||'';
+  $('set_rate').value=s?.usd_mnt_rate??3450; $('set_account').value=s?.payment_account||'';
+  $('set_payinfo').value=s?.payment_info||''; $('set_qr').value=s?.payment_qr_url||''; $('set_contact').value=s?.contact||'';
 }
 $('saveSettingsBtn').onclick=async()=>{
   const {error}=await sb.rpc('stk_set_settings',{p_pin:PIN,p_player_name:$('set_name').value,
     p_tagline:$('set_tag').value,p_avatar_url:$('set_avatar').value,
     p_default_markup:Number($('set_markup').value||1.1),p_usd_mnt_rate:Number($('set_rate').value||3450),
-    p_payment_info:$('set_payinfo').value,p_payment_qr_url:$('set_qr').value,p_contact:$('set_contact').value});
+    p_payment_info:$('set_payinfo').value,p_payment_account:$('set_account').value,
+    p_payment_qr_url:$('set_qr').value,p_contact:$('set_contact').value});
   if(error)return toast(error.message,'err'); toast('Хадгаллаа ✓','ok'); loadAll();};
 $('changePinBtn').onclick=async()=>{
   const o=$('pin_old').value,n=$('pin_new').value;
@@ -321,7 +325,6 @@ $('changePinBtn').onclick=async()=>{
   if(error)return toast('Хуучин PIN буруу эсвэл алдаа','err');
   PIN=n;sessionStorage.setItem('stk_pin',n);$('pin_old').value='';$('pin_new').value='';toast('PIN солигдлоо ✓','ok');};
 
-// ---------- boot ----------
 (async()=>{ if(PIN && await tryLogin(PIN)) showApp(); })();
 </script>
 </body>
