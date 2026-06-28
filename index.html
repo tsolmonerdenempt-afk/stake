@@ -46,6 +46,16 @@
     </div>
   </div>
 
+  <!-- RESULT BANNER (нийт хожил) -->
+  <div class="card hidden" id="resultBanner" style="border-color:var(--green)">
+    <h2><span class="bar" style="background:var(--green)"></span>Одоогийн нийт хожил</h2>
+    <div class="calc-out" style="background:var(--green-soft);border-color:var(--green)">
+      <div><div class="tiny muted">Нийт хожсон дүн</div><div class="big" id="wonMnt" style="color:var(--green)">0₮</div></div>
+      <div class="usd" id="wonUsd">≈ $0.00</div>
+    </div>
+    <div class="tiny muted" id="wonMeta"></div>
+  </div>
+
   <!-- OPEN BUY BUTTON -->
   <button class="btn" id="openBuy" style="width:100%;font-size:16px;padding:16px">💰 Хувь авах</button>
 
@@ -158,6 +168,16 @@ function render(){
   $('soldBar').style.width = pctSold+'%';
   $('soldLabel').textContent = `${m.sold.toFixed(1)}% / ${m.forSale}%`;
 
+  // result banner — одоогийн нийт хожил
+  if(m.hasResults){
+    $('resultBanner').classList.remove('hidden');
+    $('wonMnt').textContent = fmtMnt(m.winnings*m.rate);
+    $('wonUsd').textContent = '≈ ' + fmtUsd(m.winnings);
+    const finished = STATE.tours.filter(t=>t.result_amount!=null).length;
+    const net = m.winnings - m.totalBuyin;
+    $('wonMeta').innerHTML = `${finished}/${STATE.tours.length} тэмцээн дууссан · Багцын өртөг ${fmtUsd(m.totalBuyin)} · Цэвэр ашиг: <b style="color:${net>=0?'var(--green)':'#ff7a82'}">${net>=0?'+':''}${fmtUsd(net)} ≈ ${net>=0?'+':''}${fmtMnt(net*m.rate)}</b>`;
+  } else $('resultBanner').classList.add('hidden');
+
   // payment
   $('payInfo').textContent = set?.payment_info || '';
   $('contactInfo').textContent = set?.contact ? ('Холбоо барих: '+set.contact) : '';
@@ -172,7 +192,7 @@ function render(){
   else $('payQr').classList.add('hidden');
 
   // tournaments
-  const liveMap={upcoming:['','Эхлээгүй'],alive:['green','Амьд'],busted:['red','Унасан'],finished:['amber','Дууссан']};
+  const liveMap={upcoming:['','Эхлээгүй'],alive:['green','Тоглож байна'],day2:['green','Day 2 гарсан'],busted:['red','Унасан'],finished:['amber','Дууссан']};
   $('tourBody').innerHTML = STATE.tours.length ? STATE.tours.map((t,i)=>{
     const lv=liveMap[t.live_status]||['','—'];
     const chip = t.chip_count? ` · ${t.chip_count}`:'';
@@ -185,7 +205,7 @@ function render(){
       <td class="num">${reb}</td>
       <td class="num accent" style="color:var(--gold)">${Number(t.prize_pool||0)>0?fmtBig(t.prize_pool):'<span class="muted">—</span>'}</td>
       <td class="tiny muted">${esc(t.start_time||'')}</td>
-      <td><span class="badge ${lv[0]}"><span class="dot ${t.live_status==='alive'?'live':''}"></span>${lv[1]}</span><span class="tiny muted">${esc(chip)}</span></td>
+      <td><span class="badge ${lv[0]}"><span class="dot ${['alive','day2'].includes(t.live_status)?'live':''}"></span>${lv[1]}</span><span class="tiny muted">${esc(chip)}</span></td>
       <td>${t.place?esc(t.place):'<span class="muted">—</span>'}</td>
       <td class="num">${res}</td>
     </tr>`;

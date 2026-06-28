@@ -208,7 +208,7 @@ function renderDash(){
   $('dashStats').innerHTML=cards.map(x=>`<div class="stat ${x[3]}"><div class="k">${x[0]}</div><div class="v">${x[1]} <small>${x[2]||''}</small></div></div>`).join('');
 }
 
-const liveOpts=[['upcoming','Эхлээгүй'],['alive','Амьд'],['busted','Унасан'],['finished','Дууссан']];
+const liveOpts=[['upcoming','Эхлээгүй'],['alive','Тоглож байна'],['day2','Day 2 гарсан'],['busted','Унасан'],['finished','Дууссан']];
 function renderTours(){
   if(!D.tours.length){$('toursAdmin').innerHTML='<div class="empty">Тэмцээн алга</div>';return;}
   $('toursAdmin').innerHTML=D.tours.map(t=>`
