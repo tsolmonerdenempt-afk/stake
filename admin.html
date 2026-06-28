@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GGPoker Action — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div class="who"><span class="gg"><span class="mark">GG</span><span class="word">ADMIN<b>·</b>панель</span></span></div>
+    <div class="split">
+      <a class="badge" href="index.html" target="_blank">👁 Нийтийн хуудас</a>
+      <button id="logoutBtn" class="badge red hidden">Гарах</button>
+    </div>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="login" class="card" style="max-width:420px;margin:40px auto">
+    <h2><span class="bar"></span>Нэвтрэх</h2>
+    <div class="fg"><label>Admin PIN</label><input id="pin" type="password" placeholder="PIN" autocomplete="current-password"></div>
+    <button class="btn" id="loginBtn" style="width:100%">Нэвтрэх</button>
+    <p class="tiny muted" style="margin-top:10px">Анхны PIN: <b>onosh2026</b> — нэвтэрсний дараа Тохиргоо хэсгээс заавал солино уу.</p>
+  </div>
+
+  <!-- APP -->
+  <div id="app" class="hidden">
+    <div class="tabs">
+      <div class="tab active" data-tab="dash">Хяналт</div>
+      <div class="tab" data-tab="tours">Тэмцээн</div>
+      <div class="tab" data-tab="sales">Захиалга</div>
+      <div class="tab" data-tab="session">Session</div>
+      <div class="tab" data-tab="settings">Тохиргоо</div>
+    </div>
+
+    <!-- DASH -->
+    <section id="tab-dash">
+      <div class="card"><h2><span class="bar"></span>Хураангуй</h2><div class="stats" id="dashStats"></div></div>
+    </section>
+
+    <!-- TOURS -->
+    <section id="tab-tours" class="hidden">
+      <div class="card">
+        <h2><span class="bar"></span>Тэмцээн нэмэх</h2>
+        <div class="row"><div class="fg"><label>Нэр *</label><input id="t_name"></div>
+          <div class="fg"><label>Buy-in (USD) *</label><input id="t_buyin" type="number" step="0.01"></div></div>
+        <div class="row3">
+          <div class="fg"><label>Эхлэх цаг</label><input id="t_start" placeholder="Jun 28, 13:30"></div>
+          <div class="fg"><label>Late Reg</label><input id="t_late" placeholder="Jun 28, 15:40"></div>
+          <div class="fg"><label>Stack</label><input id="t_stack" placeholder="25,000"></div>
+        </div>
+        <div class="row"><div class="fg"><label>Тэмдэглэгээ (tag)</label><input id="t_tag" placeholder="Mystery Bounty"></div>
+          <div class="fg"><label>Эрэмбэ</label><input id="t_sort" type="number" value="0"></div></div>
+        <button class="btn" id="addTourBtn">+ Нэмэх</button>
+      </div>
+      <div class="card">
+        <h2><span class="bar"></span>Тэмцээнүүд — live & үр дүн</h2>
+        <div id="toursAdmin"></div>
+      </div>
+    </section>
+
+    <!-- SALES -->
+    <section id="tab-sales" class="hidden">
+      <div class="card"><h2><span class="bar"></span>Захиалгууд</h2>
+        <p class="tiny muted">Төлбөр ороход <b>Төлсөн</b> дарж баталгаажуул. Цуцлах нь зарагдсан хувиас хасна.</p>
+        <div id="salesAdmin"></div>
+      </div>
+    </section>
+
+    <!-- SESSION -->
+    <section id="tab-session" class="hidden">
+      <div class="card">
+        <h2><span class="bar"></span>Идэвхтэй session</h2>
+        <div class="fg"><label>Гарчиг</label><input id="s_title"></div>
+        <div class="row3">
+          <div class="fg"><label>Огноо</label><input id="s_date" type="date"></div>
+          <div class="fg"><label>Markup (×)</label><input id="s_markup" type="number" step="0.01" placeholder="1.10"></div>
+          <div class="fg"><label>USD→MNT ханш</label><input id="s_rate" type="number" placeholder="3450"></div>
+        </div>
+        <div class="row3">
+          <div class="fg"><label>Нийт зарах хувь (%)</label><input id="s_forsale" type="number" step="1"></div>
+          <div class="fg"><label>Төлөв</label><select id="s_status">
+            <option value="open">Зарж байна</option><option value="running">Тоглож байна</option><option value="closed">Хаагдсан</option>
+          </select></div>
+          <div class="fg"><label>Идэвхтэй эсэх</label><select id="s_active"><option value="true">Тийм</option><option value="false">Үгүй</option></select></div>
+        </div>
+        <div class="fg"><label>Тэмдэглэл</label><textarea id="s_notes"></textarea></div>
+        <div class="split"><button class="btn" id="saveSessionBtn">Хадгалах</button>
+          <button class="btn ghost" id="newSessionBtn">+ Шинэ session үүсгэх</button></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="tab-settings" class="hidden">
+      <div class="card">
+        <h2><span class="bar"></span>Профайл & төлбөр</h2>
+        <div class="row"><div class="fg"><label>Тоглогчийн нэр</label><input id="set_name"></div>
+          <div class="fg"><label>Tagline</label><input id="set_tag"></div></div>
+        <div class="fg"><label>Avatar зургийн URL</label><input id="set_avatar" placeholder="https://..."></div>
+        <div class="row"><div class="fg"><label>Анхны markup (×)</label><input id="set_markup" type="number" step="0.01"></div>
+          <div class="fg"><label>Анхны USD→MNT ханш</label><input id="set_rate" type="number"></div></div>
+        <div class="fg"><label>Төлбөрийн мэдээлэл (данс гэх мэт)</label><textarea id="set_payinfo"></textarea></div>
+        <div class="fg"><label>QPay/QR зургийн URL (заавал биш)</label><input id="set_qr" placeholder="https://..."></div>
+        <div class="fg"><label>Холбоо барих</label><input id="set_contact"></div>
+        <button class="btn" id="saveSettingsBtn">Хадгалах</button>
+      </div>
+      <div class="card">
+        <h2><span class="bar"></span>PIN солих</h2>
+        <div class="row"><div class="fg"><label>Хуучин PIN</label><input id="pin_old" type="password"></div>
+          <div class="fg"><label>Шинэ PIN (4+ тэмдэгт)</label><input id="pin_new" type="password"></div></div>
+        <button class="btn warn" id="changePinBtn">PIN солих</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+const C=window.STK_CONFIG;
+const sb=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);
+const $=id=>document.getElementById(id);
+const fmtMnt=n=>Math.round(n||0).toLocaleString('en-US')+'₮';
+const fmtUsd=n=>'$'+(Number(n||0)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(m,t){const e=$('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(()=>e.className='toast',2800);}
+let PIN=sessionStorage.getItem('stk_pin')||'';
+let D={session:null,settings:null,tours:[],sales:[]};
+
+// ---------- auth ----------
+async function tryLogin(pin){
+  const {data,error}=await sb.rpc('stk_admin_login',{p_pin:pin});
+  if(error){toast('Алдаа гарлаа','err');return false;}
+  return data===true;
+}
+$('loginBtn').onclick=async()=>{
+  const pin=$('pin').value.trim(); if(!pin)return;
+  $('loginBtn').disabled=true;
+  if(await tryLogin(pin)){PIN=pin;sessionStorage.setItem('stk_pin',pin);showApp();}
+  else toast('PIN буруу байна','err');
+  $('loginBtn').disabled=false;
+};
+$('pin').addEventListener('keydown',e=>{if(e.key==='Enter')$('loginBtn').click();});
+$('logoutBtn').onclick=()=>{sessionStorage.removeItem('stk_pin');location.reload();};
+
+function showApp(){$('login').classList.add('hidden');$('app').classList.remove('hidden');$('logoutBtn').classList.remove('hidden');loadAll();}
+
+// ---------- tabs ----------
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  ['dash','tours','sales','session','settings'].forEach(n=>$('tab-'+n).classList.add('hidden'));
+  $('tab-'+t.dataset.tab).classList.remove('hidden');
+});
+
+// ---------- load ----------
+async function loadAll(){
+  const {data:set}=await sb.from('stk_settings_public').select('*').eq('id',1).maybeSingle();
+  D.settings=set; fillSettings(set);
+  const {data:ses}=await sb.from('stk_sessions').select('*').eq('is_active',true).order('created_at',{ascending:false}).limit(1);
+  D.session=ses&&ses[0]?ses[0]:null; fillSession(D.session);
+  if(D.session){
+    const sid=D.session.id;
+    const {data:tt}=await sb.from('stk_tournaments').select('*').eq('session_id',sid).order('sort_order');
+    D.tours=tt||[];
+    const {data:sa,error}=await sb.rpc('stk_admin_sales',{p_pin:PIN});
+    D.sales=(sa||[]).filter(x=>x.session_id===sid);
+    if(error)console.warn(error);
+  }else{D.tours=[];D.sales=[];}
+  renderDash();renderTours();renderSales();
+}
+
+function metrics(){
+  const s=D.session,set=D.settings;
+  const totalBuyin=D.tours.reduce((a,t)=>a+Number(t.buy_in||0),0);
+  const markup=(s&&s.markup!=null)?Number(s.markup):Number(set?.default_markup??1);
+  const rate=(s&&s.usd_mnt_rate!=null)?Number(s.usd_mnt_rate):Number(set?.usd_mnt_rate??3450);
+  const sold=D.sales.filter(x=>x.status!=='cancelled').reduce((a,x)=>a+Number(x.percent||0),0);
+  const paid=D.sales.filter(x=>x.status==='paid');
+  const collectedMnt=paid.reduce((a,x)=>a+Number(x.amount_mnt||0),0);
+  const winnings=D.tours.reduce((a,t)=>a+(t.result_amount!=null?Number(t.result_amount):0),0);
+  const hasResults=D.tours.some(t=>t.result_amount!=null);
+  const forSale=Number(s?.total_percent_for_sale??0);
+  return {totalBuyin,markup,rate,sold,forSale,avail:Math.max(0,forSale-sold),collectedMnt,winnings,hasResults,perPct:totalBuyin/100*markup};
+}
+
+function renderDash(){
+  const m=metrics();
+  const cards=[
+    ['Нийт buy-in',fmtUsd(m.totalBuyin),`≈ ${fmtMnt(m.totalBuyin*m.rate)}`,''],
+    ['Markup',`${m.markup.toFixed(2)}×`,'',''],
+    ['Зарагдсан',`${m.sold.toFixed(1)}%`,`${m.forSale}%-аас`,'accent'],
+    ['Үлдсэн',`${m.avail.toFixed(1)}%`,'',m.avail>0?'good':'bad'],
+    ['Цуглуулсан (төлсөн)',fmtMnt(m.collectedMnt),'','good'],
+  ];
+  if(m.hasResults){
+    cards.push(['Нийт хожил',fmtUsd(m.winnings),`≈ ${fmtMnt(m.winnings*m.rate)}`,m.winnings>=m.totalBuyin?'good':'bad']);
+    const inv=m.totalBuyin*(m.sold/100); // зарсан хэсгээс олсон markup ашиг
+    const markupProfit=m.sold/100*m.totalBuyin*(m.markup-1);
+    cards.push(['Markup ашиг',fmtUsd(markupProfit),'зарсан хувиас','good']);
+  }
+  $('dashStats').innerHTML=cards.map(x=>`<div class="stat ${x[3]}"><div class="k">${x[0]}</div><div class="v">${x[1]} <small>${x[2]||''}</small></div></div>`).join('');
+}
+
+// ---------- tournaments admin ----------
+const liveOpts=[['upcoming','Эхлээгүй'],['alive','Амьд'],['busted','Унасан'],['finished','Дууссан']];
+function renderTours(){
+  if(!D.tours.length){$('toursAdmin').innerHTML='<div class="empty">Тэмцээн алга</div>';return;}
+  $('toursAdmin').innerHTML=D.tours.map(t=>`
+   <div class="stat" style="margin-bottom:10px">
+     <div class="split" style="justify-content:space-between;align-items:center">
+       <div><div class="name">${esc(t.name)}</div><span class="tiny muted">${fmtUsd(t.buy_in)} · ${esc(t.start_time||'')} ${t.tag?'· '+esc(t.tag):''}</span></div>
+       <button class="btn danger sm" onclick="delTour('${t.id}')">Устгах</button>
+     </div>
+     <div class="row3" style="margin-top:10px">
+       <div><label class="tiny">Chip count</label><input id="chip_${t.id}" value="${esc(t.chip_count||'')}" placeholder="ж: 120,000"></div>
+       <div><label class="tiny">Төлөв</label><select id="live_${t.id}">${liveOpts.map(o=>`<option value="${o[0]}" ${t.live_status===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div>
+       <div><label class="tiny">Байр</label><input id="place_${t.id}" value="${esc(t.place||'')}" placeholder="ж: 5/1200"></div>
+     </div>
+     <div class="row" style="margin-top:10px">
+       <div><label class="tiny">Үр дүн / хожил (USD)</label><input id="res_${t.id}" type="number" step="0.01" value="${t.result_amount!=null?t.result_amount:''}" placeholder="хоосон = дуусаагүй"></div>
+       <div style="display:flex;align-items:flex-end;gap:8px">
+         <button class="btn sm" onclick="saveLive('${t.id}')">Live хадгалах</button>
+         <button class="btn good sm" onclick="saveResult('${t.id}')">Үр дүн хадгалах</button>
+       </div>
+     </div>
+   </div>`).join('');
+}
+window.delTour=async id=>{ if(!confirm('Энэ тэмцээнийг устгах уу?'))return;
+  const {error}=await sb.rpc('stk_delete_tournament',{p_pin:PIN,p_id:id});
+  if(error)return toast(error.message,'err'); toast('Устгалаа','ok'); loadAll();};
+window.saveLive=async id=>{
+  const {error}=await sb.rpc('stk_set_tournament_live',{p_pin:PIN,p_id:id,
+    p_chip_count:$('chip_'+id).value,p_live_status:$('live_'+id).value,p_place:$('place_'+id).value});
+  if(error)return toast(error.message,'err'); toast('Хадгаллаа ✓','ok'); loadAll();};
+window.saveResult=async id=>{
+  const v=$('res_'+id).value; const amt=v===''?null:Number(v);
+  const {error}=await sb.rpc('stk_set_tournament_result',{p_pin:PIN,p_id:id,p_place:$('place_'+id).value,p_result_amount:amt});
+  if(error)return toast(error.message,'err'); toast('Үр дүн хадгаллаа ✓','ok'); loadAll();};
+$('addTourBtn').onclick=async()=>{
+  const name=$('t_name').value.trim(); if(!name)return toast('Нэр оруулна уу','err');
+  if(!D.session)return toast('Эхлээд session үүсгэнэ үү','err');
+  const {error}=await sb.rpc('stk_upsert_tournament',{p_pin:PIN,p_id:null,p_session_id:D.session.id,
+    p_name:name,p_buy_in:Number($('t_buyin').value||0),p_start_time:$('t_start').value,
+    p_late_reg:$('t_late').value,p_starting_stack:$('t_stack').value,p_tag:$('t_tag').value,p_sort_order:Number($('t_sort').value||0)});
+  if(error)return toast(error.message,'err');
+  ['t_name','t_buyin','t_start','t_late','t_stack','t_tag'].forEach(i=>$(i).value=''); $('t_sort').value=0;
+  toast('Нэмлээ ✓','ok'); loadAll();};
+
+// ---------- sales admin ----------
+const stOpts=[['pending','Хүлээгдэж буй'],['paid','Төлсөн'],['cancelled','Цуцалсан']];
+function renderSales(){
+  if(!D.sales.length){$('salesAdmin').innerHTML='<div class="empty">Захиалга алга</div>';return;}
+  const m=metrics();
+  $('salesAdmin').innerHTML=`<div class="tbl-wrap"><table>
+    <thead><tr><th>Огноо</th><th>Нэр</th><th>Холбоо</th><th class="num">Хувь</th><th class="num">Дүн</th><th>Төлөв</th><th></th></tr></thead>
+    <tbody>${D.sales.map(x=>{
+      const d=new Date(x.created_at);const ds=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      return `<tr>
+        <td class="tiny muted">${ds}</td>
+        <td class="name">${esc(x.buyer_name)}${x.note?`<div class="tiny muted">${esc(x.note)}</div>`:''}</td>
+        <td class="tiny">${esc(x.buyer_contact||'—')}</td>
+        <td class="num">${Number(x.percent).toFixed(1)}%</td>
+        <td class="num">${fmtMnt(x.amount_mnt)}<div class="tiny muted">${fmtUsd(x.amount_usd)}</div></td>
+        <td><select onchange="setSale('${x.id}',this.value)">${stOpts.map(o=>`<option value="${o[0]}" ${x.status===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></td>
+        <td><button class="btn danger sm" onclick="delSale('${x.id}')">✕</button></td>
+      </tr>`;}).join('')}</tbody></table></div>
+    <p class="tiny muted" style="margin-top:10px">Нийт зарсан: <b>${m.sold.toFixed(1)}%</b> · Цуглуулсан: <b>${fmtMnt(m.collectedMnt)}</b></p>`;
+}
+window.setSale=async(id,st)=>{const {error}=await sb.rpc('stk_set_sale_status',{p_pin:PIN,p_id:id,p_status:st});
+  if(error)return toast(error.message,'err'); toast('Шинэчиллээ ✓','ok'); loadAll();};
+window.delSale=async id=>{if(!confirm('Захиалга устгах уу?'))return;
+  const {error}=await sb.rpc('stk_delete_sale',{p_pin:PIN,p_id:id});
+  if(error)return toast(error.message,'err'); toast('Устгалаа','ok'); loadAll();};
+
+// ---------- session ----------
+function fillSession(s){
+  $('s_title').value=s?.title||''; $('s_date').value=s?.session_date||'';
+  $('s_markup').value=s?.markup??''; $('s_rate').value=s?.usd_mnt_rate??'';
+  $('s_forsale').value=s?.total_percent_for_sale??50; $('s_status').value=s?.status||'open';
+  $('s_active').value=String(s?.is_active??true); $('s_notes').value=s?.notes||'';
+}
+$('saveSessionBtn').onclick=async()=>{
+  const {error}=await sb.rpc('stk_upsert_session',{p_pin:PIN,p_id:D.session?D.session.id:null,
+    p_title:$('s_title').value,p_session_date:$('s_date').value||null,
+    p_markup:$('s_markup').value===''?null:Number($('s_markup').value),
+    p_total_percent:Number($('s_forsale').value||0),
+    p_usd_mnt_rate:$('s_rate').value===''?null:Number($('s_rate').value),
+    p_status:$('s_status').value,p_notes:$('s_notes').value,p_is_active:$('s_active').value==='true'});
+  if(error)return toast(error.message,'err'); toast('Session хадгаллаа ✓','ok'); loadAll();};
+$('newSessionBtn').onclick=async()=>{
+  if(!confirm('Шинэ session үүсгэх үү? (одоогийнх идэвхгүй болно)'))return;
+  const {error}=await sb.rpc('stk_upsert_session',{p_pin:PIN,p_id:null,p_title:'Шинэ session',
+    p_session_date:new Date().toISOString().slice(0,10),p_markup:Number(D.settings?.default_markup??1.1),
+    p_total_percent:50,p_usd_mnt_rate:null,p_status:'open',p_notes:'',p_is_active:true});
+  if(error)return toast(error.message,'err'); toast('Үүсгэлээ ✓','ok'); loadAll();};
+
+// ---------- settings ----------
+function fillSettings(s){
+  $('set_name').value=s?.player_name||''; $('set_tag').value=s?.tagline||'';
+  $('set_avatar').value=s?.avatar_url||''; $('set_markup').value=s?.default_markup??1.1;
+  $('set_rate').value=s?.usd_mnt_rate??3450; $('set_payinfo').value=s?.payment_info||'';
+  $('set_qr').value=s?.payment_qr_url||''; $('set_contact').value=s?.contact||'';
+}
+$('saveSettingsBtn').onclick=async()=>{
+  const {error}=await sb.rpc('stk_set_settings',{p_pin:PIN,p_player_name:$('set_name').value,
+    p_tagline:$('set_tag').value,p_avatar_url:$('set_avatar').value,
+    p_default_markup:Number($('set_markup').value||1.1),p_usd_mnt_rate:Number($('set_rate').value||3450),
+    p_payment_info:$('set_payinfo').value,p_payment_qr_url:$('set_qr').value,p_contact:$('set_contact').value});
+  if(error)return toast(error.message,'err'); toast('Хадгаллаа ✓','ok'); loadAll();};
+$('changePinBtn').onclick=async()=>{
+  const o=$('pin_old').value,n=$('pin_new').value;
+  if(n.length<4)return toast('Шинэ PIN богино байна','err');
+  const {error}=await sb.rpc('stk_change_pin',{p_old_pin:o,p_new_pin:n});
+  if(error)return toast('Хуучин PIN буруу эсвэл алдаа','err');
+  PIN=n;sessionStorage.setItem('stk_pin',n);$('pin_old').value='';$('pin_new').value='';toast('PIN солигдлоо ✓','ok');};
+
+// ---------- boot ----------
+(async()=>{ if(PIN && await tryLogin(PIN)) showApp(); })();
+</script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GGPoker Action — хувь зарна</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="top">
+    <div class="who">
+      <span class="gg"><span class="mark">GG</span><span class="word">POKER<b>·</b>ACTION</span></span>
+    </div>
+    <div class="split">
+      <span id="statusBadge" class="badge"><span class="dot"></span><span>...</span></span>
+      <a class="badge" href="admin.html">⚙︎ Admin</a>
+    </div>
+  </div>
+
+  <!-- PLAYER -->
+  <div class="card">
+    <div class="who">
+      <img id="avatar" class="avatar" alt="" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='54' height='54'><rect width='54' height='54' fill='%231d2230'/><text x='50%' y='56%' font-size='22' fill='%239aa3b5' text-anchor='middle' font-family='Arial'>GG</text></svg>">
+      <div>
+        <h1 id="playerName">...</h1>
+        <div class="sub" id="sessionTitle">...</div>
+        <div class="sub" id="tagline" style="margin-top:4px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="card">
+    <h2><span class="bar"></span>Багцын мэдээлэл</h2>
+    <div class="stats" id="stats"></div>
+    <div style="margin-top:14px">
+      <div class="split" style="justify-content:space-between">
+        <span class="tiny muted">Зарагдсан хувь</span>
+        <span class="tiny" id="soldLabel">0%</span>
+      </div>
+      <div class="prog"><i id="soldBar" style="width:0%"></i></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <!-- BUY -->
+    <div class="card" id="buyCard">
+      <h2><span class="bar"></span>Хувь авах</h2>
+      <div class="fg">
+        <label>Хэдэн хувь авах вэ? (%)</label>
+        <input id="pct" type="number" min="0.5" step="0.5" placeholder="ж: 5">
+      </div>
+      <div class="calc-out">
+        <div><div class="tiny muted">Төлөх дүн</div><div class="big" id="costMnt">0₮</div></div>
+        <div class="usd" id="costUsd">≈ $0.00</div>
+      </div>
+      <div class="row">
+        <div class="fg"><label>Таны нэр *</label><input id="bName" placeholder="Нэр"></div>
+        <div class="fg"><label>Холбоо барих (утас/Telegram)</label><input id="bContact" placeholder="@username эсвэл утас"></div>
+      </div>
+      <div class="fg"><label>Тэмдэглэл (заавал биш)</label><input id="bNote" placeholder="..."></div>
+      <button class="btn" id="buyBtn" style="width:100%">Хувь захиалах</button>
+      <p class="tiny muted" style="margin:10px 0 0">Захиалга өгсний дараа доорх төлбөрийн мэдээллээр шилжүүлээд, тоглогч баталгаажуулна.</p>
+    </div>
+
+    <!-- PAYMENT -->
+    <div class="card">
+      <h2><span class="bar"></span>Төлбөрийн мэдээлэл</h2>
+      <div id="payInfo" class="tiny" style="white-space:pre-wrap;line-height:1.7"></div>
+      <img id="payQr" class="qr hidden" style="margin-top:12px" alt="QR">
+      <div class="hr"></div>
+      <div class="tiny muted" id="contactInfo"></div>
+    </div>
+  </div>
+
+  <!-- TOURNAMENTS -->
+  <div class="card">
+    <h2><span class="bar"></span>Тэмцээнүүд</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Тэмцээн</th><th class="num">Buy-in</th><th>Эхлэх</th>
+          <th>Төлөв / Chip</th><th>Байр</th><th class="num">Үр дүн</th>
+        </tr></thead>
+        <tbody id="tourBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SALES -->
+  <div class="card">
+    <h2><span class="bar"></span>Худалдан авалтын түүх</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Худалдан авагч</th><th class="num">Хувь</th><th class="num">Дүн</th><th>Төлөв</th><th id="profitHead" class="num"></th></tr></thead>
+        <tbody id="salesBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="foot">GGPoker·Action — хувь зарах самбар · автоматаар <span id="refSec"></span>с тутамд шинэчлэгдэнэ</div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+const C = window.STK_CONFIG;
+const sb = window.supabase.createClient(C.SUPABASE_URL, C.SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+const fmtMnt = n => Math.round(n||0).toLocaleString('en-US') + '₮';
+const fmtUsd = n => '$' + (Number(n||0)).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+function toast(m,t){const e=$('toast');e.textContent=m;e.className='toast show '+(t||'');setTimeout(()=>e.className='toast',2600);}
+
+let STATE = {session:null, settings:null, tours:[], sales:[]};
+
+function compute(){
+  const s=STATE.session, set=STATE.settings;
+  const totalBuyin = STATE.tours.reduce((a,t)=>a+Number(t.buy_in||0),0);
+  const markup = (s && s.markup!=null) ? Number(s.markup) : Number(set?.default_markup ?? 1);
+  const rate = (s && s.usd_mnt_rate!=null) ? Number(s.usd_mnt_rate) : Number(set?.usd_mnt_rate ?? 3450);
+  const sold = STATE.sales.filter(x=>x.status!=='cancelled').reduce((a,x)=>a+Number(x.percent||0),0);
+  const forSale = Number(s?.total_percent_for_sale ?? 0);
+  const avail = Math.max(0, forSale - sold);
+  const winnings = STATE.tours.reduce((a,t)=>a+(t.result_amount!=null?Number(t.result_amount):0),0);
+  const hasResults = STATE.tours.some(t=>t.result_amount!=null);
+  return {totalBuyin, markup, rate, sold, forSale, avail, winnings, hasResults, perPct: totalBuyin/100*markup};
+}
+
+function render(){
+  const set=STATE.settings, s=STATE.session, m=compute();
+  $('playerName').textContent = set?.player_name || 'Poker Player';
+  $('tagline').textContent = set?.tagline || '';
+  $('sessionTitle').textContent = s?.title || 'Идэвхтэй session алга';
+  if(set?.avatar_url) $('avatar').src=set.avatar_url;
+  // status badge
+  const sb_=$('statusBadge'); const st=s?.status||'—';
+  const map={open:['green','Зарж байна'],running:['amber','Тоглож байна'],closed:['red','Хаагдсан']};
+  const mm=map[st]||['','—']; sb_.className='badge '+mm[0];
+  sb_.innerHTML=`<span class="dot ${st==='running'?'live':''}"></span><span>${mm[1]}</span>`;
+
+  // stats
+  const stats=[
+    ['Нийт buy-in', `${fmtUsd(m.totalBuyin)}`, `≈ ${fmtMnt(m.totalBuyin*m.rate)}`,''],
+    ['Markup', `${m.markup.toFixed(2)}×`, '',''],
+    ['1% үнэ', fmtMnt(m.perPct*m.rate), `≈ ${fmtUsd(m.perPct)}`,'accent'],
+    ['Үлдсэн хувь', `${m.avail.toFixed(1)}%`, `${m.forSale}%-аас`, m.avail>0?'good':'bad'],
+  ];
+  if(m.hasResults){
+    stats.push(['Нийт хожил', fmtUsd(m.winnings), `≈ ${fmtMnt(m.winnings*m.rate)}`, m.winnings>=m.totalBuyin?'good':'bad']);
+    const roi = m.totalBuyin>0 ? (m.winnings/m.totalBuyin-1)*100 : 0;
+    stats.push(['ROI', `${roi>=0?'+':''}${roi.toFixed(0)}%`, '', roi>=0?'good':'bad']);
+  }
+  $('stats').innerHTML = stats.map(x=>`<div class="stat ${x[3]}"><div class="k">${x[0]}</div><div class="v">${x[1]} <small>${x[2]||''}</small></div></div>`).join('');
+  const pctSold = m.forSale>0 ? Math.min(100, m.sold/m.forSale*100) : 0;
+  $('soldBar').style.width = pctSold+'%';
+  $('soldLabel').textContent = `${m.sold.toFixed(1)}% / ${m.forSale}%`;
+
+  // payment
+  $('payInfo').textContent = set?.payment_info || 'Төлбөрийн мэдээлэл оруулаагүй байна.';
+  $('contactInfo').textContent = set?.contact ? ('Холбоо барих: '+set.contact) : '';
+  if(set?.payment_qr_url){ $('payQr').src=set.payment_qr_url; $('payQr').classList.remove('hidden'); }
+  else $('payQr').classList.add('hidden');
+
+  // tournaments
+  const liveMap={upcoming:['','Эхлээгүй'],alive:['green','Амьд'],busted:['red','Унасан'],finished:['amber','Дууссан']};
+  $('tourBody').innerHTML = STATE.tours.length ? STATE.tours.map((t,i)=>{
+    const lv=liveMap[t.live_status]||['','—'];
+    const chip = t.chip_count? ` · ${t.chip_count}`:'';
+    const res = t.result_amount!=null ? `<span style="color:${Number(t.result_amount)>0?'var(--green)':'var(--muted)'}">${fmtUsd(t.result_amount)}</span>` : '<span class="muted">—</span>';
+    return `<tr>
+      <td class="muted">${i+1}</td>
+      <td><div class="name">${esc(t.name)}</div>${t.tag?`<span class="pill-tag">${esc(t.tag)}</span>`:''}</td>
+      <td class="num">${fmtUsd(t.buy_in)}</td>
+      <td class="tiny muted">${esc(t.start_time||'')}</td>
+      <td><span class="badge ${lv[0]}"><span class="dot ${t.live_status==='alive'?'live':''}"></span>${lv[1]}</span><span class="tiny muted">${esc(chip)}</span></td>
+      <td>${t.place?esc(t.place):'<span class="muted">—</span>'}</td>
+      <td class="num">${res}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="7" class="empty">Тэмцээн алга</td></tr>`;
+
+  // sales
+  const stMap={pending:['amber','Хүлээгдэж буй'],paid:['green','Төлсөн'],cancelled:['red','Цуцалсан']};
+  $('profitHead').textContent = m.hasResults ? 'Ашиг' : '';
+  $('salesBody').innerHTML = STATE.sales.length ? STATE.sales.map(x=>{
+    const st=stMap[x.status]||['','—'];
+    let profit='';
+    if(m.hasResults && x.status!=='cancelled'){
+      const ret = Number(x.percent)/100*m.winnings;
+      const paid = Number(x.percent)/100*m.totalBuyin*m.markup;
+      const p = ret - paid;
+      profit = `<td class="num" style="color:${p>=0?'var(--green)':'#ff7a82'}">${p>=0?'+':''}${fmtUsd(p)}</td>`;
+    } else if(m.hasResults){ profit='<td class="num muted">—</td>'; }
+    return `<tr>
+      <td class="name">${esc(x.buyer_name)}</td>
+      <td class="num">${Number(x.percent).toFixed(1)}%</td>
+      <td class="num">${fmtMnt(x.amount_mnt)}</td>
+      <td><span class="badge ${st[0]}">${st[1]}</span></td>
+      ${profit}
+    </tr>`;
+  }).join('') : `<tr><td colspan="${m.hasResults?5:4}" class="empty">Захиалга алга</td></tr>`;
+
+  calc();
+}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function calc(){
+  const m=compute(); const p=parseFloat($('pct').value)||0;
+  const usd=p/100*m.totalBuyin*m.markup; const mnt=usd*m.rate;
+  $('costMnt').textContent=fmtMnt(mnt); $('costUsd').textContent='≈ '+fmtUsd(usd);
+}
+
+async function load(){
+  try{
+    const {data:set} = await sb.from('stk_settings_public').select('*').eq('id',1).maybeSingle();
+    STATE.settings = set;
+    const {data:ses} = await sb.from('stk_sessions').select('*').eq('is_active',true).order('created_at',{ascending:false}).limit(1);
+    STATE.session = ses && ses[0] ? ses[0] : null;
+    if(STATE.session){
+      const sid=STATE.session.id;
+      const [{data:tt},{data:ss}] = await Promise.all([
+        sb.from('stk_tournaments').select('*').eq('session_id',sid).order('sort_order'),
+        sb.from('stk_sales_public').select('*').eq('session_id',sid).order('created_at',{ascending:false}),
+      ]);
+      STATE.tours=tt||[]; STATE.sales=ss||[];
+    } else { STATE.tours=[]; STATE.sales=[]; }
+    render();
+  }catch(e){ console.error(e); toast('Холбогдоход алдаа гарлаа','err'); }
+}
+
+$('pct').addEventListener('input',calc);
+$('buyBtn').addEventListener('click', async ()=>{
+  const m=compute();
+  const pct=parseFloat($('pct').value)||0;
+  const name=$('bName').value.trim();
+  if(!STATE.session){return toast('Идэвхтэй session алга','err');}
+  if(pct<=0){return toast('Хувиа оруулна уу','err');}
+  if(pct>m.avail+0.0001){return toast(`Зөвхөн ${m.avail.toFixed(1)}% үлдсэн`,'err');}
+  if(!name){return toast('Нэрээ оруулна уу','err');}
+  $('buyBtn').disabled=true; $('buyBtn').textContent='Илгээж байна...';
+  const {data,error} = await sb.rpc('stk_create_sale',{
+    p_session_id:STATE.session.id, p_buyer_name:name,
+    p_buyer_contact:$('bContact').value.trim(), p_percent:pct, p_note:$('bNote').value.trim()
+  });
+  $('buyBtn').disabled=false; $('buyBtn').textContent='Хувь захиалах';
+  if(error){ toast(error.message||'Алдаа','err'); return; }
+  toast('Амжилттай! Төлбөрөө шилжүүлээд хүлээнэ үү ✓','ok');
+  $('pct').value='';$('bName').value='';$('bContact').value='';$('bNote').value='';
+  load();
+});
+
+$('refSec').textContent=C.REFRESH_SECONDS;
+load();
+setInterval(load, (C.REFRESH_SECONDS||20)*1000);
+</script>
+</body>
+</html>
