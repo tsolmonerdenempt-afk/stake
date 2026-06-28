@@ -62,8 +62,8 @@
         <div class="usd" id="costUsd">≈ $0.00</div>
       </div>
       <div class="row">
-        <div class="fg"><label>Таны нэр *</label><input id="bName" placeholder="Нэр"></div>
-        <div class="fg"><label>Холбоо барих (утас/Telegram)</label><input id="bContact" placeholder="@username эсвэл утас"></div>
+        <div class="fg"><label>Facebook нэр *</label><input id="bName" placeholder="Facebook дээрх нэр"></div>
+        <div class="fg"><label>Утасны дугаар *</label><input id="bContact" type="tel" placeholder="99xxxxxx"></div>
       </div>
       <div class="fg"><label>Тэмдэглэл (заавал биш)</label><input id="bNote" placeholder="..."></div>
       <button class="btn" id="buyBtn" style="width:100%">Хувь захиалах</button>
@@ -161,7 +161,11 @@ function render(){
   // payment
   $('payInfo').textContent = set?.payment_info || '';
   $('contactInfo').textContent = set?.contact ? ('Холбоо барих: '+set.contact) : '';
-  const acct = (set?.payment_account||'').trim();
+  let acct = (set?.payment_account||'').trim();
+  if(!acct){ // fallback: longest digit run (6+) found in payment info
+    const m = (set?.payment_info||'').match(/\d[\d\s-]{5,}\d/g);
+    if(m) acct = m.sort((a,b)=>b.replace(/\D/g,'').length-a.replace(/\D/g,'').length)[0].replace(/[\s-]/g,'');
+  }
   if(acct){ $('acctNum').textContent=acct; $('acctRow').classList.remove('hidden'); }
   else $('acctRow').classList.add('hidden');
   if(set?.payment_qr_url){ $('payQr').src=set.payment_qr_url; $('payQr').classList.remove('hidden'); }
@@ -232,10 +236,12 @@ $('buyBtn').addEventListener('click', async ()=>{
   const m=compute();
   const pct=parseFloat($('pct').value)||0;
   const name=$('bName').value.trim();
+  const phone=$('bContact').value.trim();
   if(!STATE.session){return toast('Идэвхтэй session алга','err');}
   if(pct<=0){return toast('Хувиа оруулна уу','err');}
   if(pct>m.avail+0.0001){return toast(`Зөвхөн ${m.avail.toFixed(1)}% үлдсэн`,'err');}
-  if(!name){return toast('Нэрээ оруулна уу','err');}
+  if(!name){return toast('Facebook нэрээ оруулна уу','err');}
+  if(!phone){return toast('Утасны дугаараа оруулна уу','err');}
   $('buyBtn').disabled=true; $('buyBtn').textContent='Илгээж байна...';
   const {data,error} = await sb.rpc('stk_create_sale',{
     p_session_id:STATE.session.id, p_buyer_name:name,
